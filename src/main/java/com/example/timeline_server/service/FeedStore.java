@@ -76,9 +76,10 @@ public class FeedStore {
     }
 
     public Boolean isLikePost(int userId, int postId) {
-        return redis.opsForSet().isMember("likes:"+postId, String.valueOf(userId));
+        return redis.opsForSet().isMember("likes:" + postId, String.valueOf(userId));
     }
 
+    // 좋아요 수 측정
     public Long countLikes(int postId) {
         return redis.opsForSet().size("likes:" + postId);
     }

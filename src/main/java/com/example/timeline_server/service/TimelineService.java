@@ -19,17 +19,24 @@ public class TimelineService {
         this.followerStore = followerStore;
     }
 
+    // userId 기반 피드 조회
     public List<SocialPost> listUserFeed(String userId) {
+        // 피드 조회, userId 기반
         List<FeedInfo> feedList = feedStore.listFeed(userId);
-        Map<Integer, Long> likes = feedStore.countLikes(feedList.stream().map(FeedInfo::getFeedId).toList());
+
+        // 좋아요 수 측정 <postId, Count>
+        Map<Integer, Long> likes = feedStore.countLikes(
+                feedList.stream()
+                        .map(FeedInfo::getFeedId)
+                        .toList());
+
         return feedList.stream().map(
-                post -> new SocialPost(post, likes.getOrDefault(post.getFeedId(), 0L))
-        ).toList();
+                post -> new SocialPost(post, likes.getOrDefault(post.getFeedId(), 0L))).toList();
     }
 
     public List<SocialPost> getRandomPost(String userId, double randomPost) {
         List<SocialPost> myPost = userId.equals("none") ? List.of() : listMyFeed(userId);
-        int randomPostSize = Math.max(10, (int)Math.ceil(myPost.size() * randomPost));
+        int randomPostSize = Math.max(10, (int) Math.ceil(myPost.size() * randomPost));
         List<SocialPost> allPost = new ArrayList<>(listAllFeed());
 
         Set<Integer> myPostIds = myPost.stream()
@@ -62,9 +69,14 @@ public class TimelineService {
                 .collect(Collectors.toList());
     }
 
+    // 내 피드 조회
     public List<SocialPost> listMyFeed(String userId) {
+        // 팔로우들 조회, Redis Set
         Set<String> followers = followerStore.listFollower(String.valueOf(userId));
+
+        // userId 기반 피드 조회, 본인 ID 조회
         List<SocialPost> myPost = listUserFeed(userId);
+        // 팔로워들 피드 조회
         List<SocialPost> followerFeed = listFollowerFeed(followers);
 
         return Stream.concat(myPost.stream(), followerFeed.stream())
@@ -73,11 +85,16 @@ public class TimelineService {
     }
 
     public List<SocialPost> listAllFeed() {
+        // Sorted Set 기반의 전체 조회
         List<FeedInfo> feedList = feedStore.allFeed();
-        Map<Integer, Long> likes = feedStore.countLikes(feedList.stream().map(FeedInfo::getFeedId).toList());
+
+        Map<Integer, Long> likes = feedStore.countLikes(
+                feedList.stream()
+                        .map(FeedInfo::getFeedId)
+                        .toList());
+
         return feedList.stream().map(
-                post -> new SocialPost(post, likes.getOrDefault(post.getFeedId(), 0L))
-        ).toList();
+                post -> new SocialPost(post, likes.getOrDefault(post.getFeedId(), 0L))).toList();
     }
 
     public boolean likePost(int userId, int postId) {
